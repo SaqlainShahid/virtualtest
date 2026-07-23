@@ -19,7 +19,7 @@ The Firebase web configuration is available through the supplied defaults in `sr
 
 In the Firebase console for `livewrite-4c2aa`:
 
-1. Enable **Authentication → Sign-in method → Anonymous**.
+1. Enable **Authentication → Sign-in method → Anonymous**. The existing email-based rules remain in place for your documents; the exam attempt paths use the separate `examSignedIn()` check because this app intentionally uses anonymous student sessions.
 2. Create/enable **Cloud Firestore**.
 3. Deploy the included `firestore.rules` file.
 

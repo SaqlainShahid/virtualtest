@@ -1,12 +1,78 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /users/{userId}/attempts/{attemptId} {
-      allow read, create: if request.auth != null && request.auth.uid == userId;
-      allow update, delete: if false;
+    function signedIn() {
+      return request.auth != null && request.auth.token.email != null;
     }
+
+    function userEmail() {
+      return request.auth.token.email;
+    }
+
+    function isOwner() {
+      return signedIn() && resource.data.ownerId == request.auth.uid;
+    }
+
+    function isSharedReader() {
+      return signedIn() && userEmail() in resource.data.sharedWithEmails;
+    }
+
+    function sharedRole() {
+      return resource.data.get('sharedPermissions', {})[userEmail()];
+    }
+
+    function isSharedEditor() {
+      return isSharedReader() && sharedRole() == 'editor';
+    }
+
+    // The exam uses Firebase Anonymous Authentication because there is one
+    // student and no student login screen.
+    function examSignedIn() {
+      return request.auth != null;
+    }
+
+    match /users/{userId} {
+      allow read: if signedIn();
+      allow create, update: if signedIn() && request.auth.uid == userId;
+
+      match /attempts/{attemptId} {
+        allow create: if examSignedIn() && request.auth.uid == userId;
+        allow read: if examSignedIn() && request.auth.uid == userId;
+        allow update, delete: if false;
+      }
+    }
+
+    match /documents/{documentId} {
+      allow create: if signedIn()
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.ownerEmail == userEmail()
+        && request.resource.data.sharedWithEmails is list
+        && request.resource.data.sharedPermissions is map;
+
+      allow read: if isOwner() || isSharedReader();
+
+      allow update: if isOwner()
+        || (
+          isSharedEditor()
+          && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+            'ownerId',
+            'ownerEmail',
+            'ownerName',
+            'sharedWithEmails',
+            'sharedPermissions',
+            'createdAt'
+          ])
+        );
+
+      allow delete: if isOwner();
+    }
+
+    // Admin summaries are written by the authenticated exam session and read
+    // by the passcode-gated admin panel. For stronger production security,
+    // replace the read rule with a Firebase custom admin claim.
     match /adminAttempts/{attemptId} {
-      allow create, read: if request.auth != null;
+      allow create, read: if examSignedIn();
       allow update, delete: if false;
     }
   }
