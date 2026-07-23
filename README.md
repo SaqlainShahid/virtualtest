@@ -23,7 +23,7 @@ In the Firebase console for `livewrite-4c2aa`:
 2. Create/enable **Cloud Firestore**.
 3. Deploy the included `firestore.rules` file.
 
-The app creates anonymous users automatically and stores attempts at `users/{anonymousUid}/attempts/{attemptId}` plus an admin summary in `adminAttempts/{attemptId}`. Student results do not reveal answer keys.
+The app asks for the student name at the start of every attempt. Every start resets the answers and timer and creates a new attempt record. Attempts are stored at `users/{anonymousUid}/attempts/{attemptId}` plus an admin summary in `adminAttempts/{attemptId}`. Student results do not reveal score or answer keys.
 
 Open `/ ?admin=1` (without the space, for example `http://localhost:5173/?admin=1`) or use the Admin panel link on the start screen. The default passcode is `VU-CS101-ADMIN`; override it with `VITE_ADMIN_PASSCODE` in `.env`. The admin panel shows score, answered count, duration, student ID, and rule violations.
 

@@ -28,6 +28,8 @@ h1 { margin: 0; color: #f5f8fc; font-size: clamp(30px, 5vw, 48px); line-height: 
 .fineprint { text-align: center; color: #718096; font-size: 11px; margin: 16px 0 0; }
 .admin-link { display: block; margin: 14px auto 0; padding: 5px; border: 0; color: #8e9bb0; background: transparent; font-size: 12px; text-decoration: underline; }
 .admin-link:hover { color: #6de0c0; }
+.field-label { display: block; margin: 0 0 8px; color: #9caac0; font: 11px 'DM Mono', monospace; text-transform: uppercase; letter-spacing: .08em; }
+.name-input { margin-bottom: 22px; }
 .admin-input { width: 100%; padding: 14px; border: 1px solid #2b3b56; border-radius: 10px; outline: 0; color: #edf4fc; background: #0e1a2c; }
 .admin-input:focus { border-color: #6de0c0; }
 .admin-results { width: min(1000px, 100%); padding: 38px; }
@@ -39,6 +41,7 @@ h1 { margin: 0; color: #f5f8fc; font-size: clamp(30px, 5vw, 48px); line-height: 
 .table-row:first-child { border-top: 0; }
 .table-head { color: #8291a6; background: #0e1a2c; font: 10px 'DM Mono', monospace; text-transform: uppercase; letter-spacing: .08em; }
 .mono { font-family: 'DM Mono', monospace; color: #9facc0; }
+.table-row > span:first-child { display: grid; gap: 4px; }
 .good { color: #6de0c0; }
 .bad { color: #ffad9a; }
 .empty-state { padding: 40px 20px; color: #91a0b7; text-align: center; border: 1px dashed #344560; border-radius: 12px; }

@@ -6,7 +6,7 @@ import { questions, validateQuestionBank } from './questions';
 
 type Phase = 'ready' | 'exam' | 'result';
 type Result = { score: number; answered: number; violations: string[]; submittedAt: Date; saved: boolean };
-type AdminAttempt = { id: string; score: number; total: number; answered: number; durationSeconds: number; violations: string[]; submittedAtIso?: string; studentId?: string };
+type AdminAttempt = { id: string; studentName?: string; score: number; total: number; answered: number; durationSeconds: number; violations: string[]; submittedAtIso?: string; studentId?: string };
 const EXAM_SECONDS = 60 * 60;
 const ADMIN_PASSCODE = import.meta.env.VITE_ADMIN_PASSCODE ?? 'VU-CS101-ADMIN';
 
@@ -15,13 +15,13 @@ function formatTime(seconds: number) {
   return `${String(Math.floor(safe / 3600)).padStart(2, '0')}:${String(Math.floor((safe % 3600) / 60)).padStart(2, '0')}:${String(safe % 60).padStart(2, '0')}`;
 }
 
-function ReadyScreen({ studentReady, error, onStart, onAdmin }: { studentReady: boolean; error: string; onStart: () => void; onAdmin: () => void }) {
-  return <main className="shell"><section className="landing card"><div className="brand-mark"><FileText size={22} /></div><p className="eyebrow">VIRTUAL UNIVERSITY • CS101</p><h1>Final Examination</h1><p className="lede">Introduction to Computing · Modules 82–234</p><div className="exam-specs"><div><Clock3 /><span><strong>60 minutes</strong><small>Fixed exam duration</small></span></div><div><FileText /><span><strong>50 MCQs</strong><small>Four choices each</small></span></div><div><LockKeyhole /><span><strong>Strict mode</strong><small>No backtracking or feedback</small></span></div></div><div className="rules"><div className="rules-heading"><ShieldCheck size={18} /> Before you begin</div><ul><li>Fullscreen is required and leaving the tab ends the exam.</li><li>Questions are forward-only. Answers cannot be changed.</li><li>Results are revealed only after submission.</li><li>A warning appears when a detectable exam rule is broken.</li></ul></div>{error && <div className="notice error"><AlertTriangle size={17} />{error}</div>}<button className="primary start" onClick={onStart} disabled={!studentReady && !error}>Start secure exam <ArrowRight size={18} /></button><button className="admin-link" onClick={onAdmin}>Admin panel</button><p className="fineprint">One student session · Attempt saved securely when Firebase is available</p></section></main>;
+function ReadyScreen({ studentReady, error, onStart, onAdmin }: { studentReady: boolean; error: string; onStart: (name: string) => void; onAdmin: () => void }) {
+  const [name, setName] = useState('');
+  return <main className="shell"><section className="landing card"><div className="brand-mark"><FileText size={22} /></div><p className="eyebrow">VIRTUAL UNIVERSITY • CS101</p><h1>Final Examination</h1><p className="lede">Introduction to Computing · Modules 82–234</p><label className="field-label" htmlFor="student-name">Student name</label><input id="student-name" className="admin-input name-input" type="text" autoComplete="name" placeholder="Enter your full name" value={name} onChange={(event) => setName(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') onStart(name); }} /><div className="exam-specs"><div><Clock3 /><span><strong>60 minutes</strong><small>Fixed exam duration</small></span></div><div><FileText /><span><strong>50 MCQs</strong><small>Four choices each</small></span></div><div><LockKeyhole /><span><strong>Strict mode</strong><small>No backtracking or feedback</small></span></div></div><div className="rules"><div className="rules-heading"><ShieldCheck size={18} /> Before you begin</div><ul><li>Fullscreen is required and leaving the tab ends the exam.</li><li>Questions are forward-only. Answers cannot be changed.</li><li>Your score is available only to the administrator.</li><li>A warning appears when a detectable exam rule is broken.</li></ul></div>{error && <div className="notice error"><AlertTriangle size={17} />{error}</div>}<button className="primary start" onClick={() => onStart(name)} disabled={!studentReady && !error}>Start secure exam <ArrowRight size={18} /></button><button className="admin-link" onClick={onAdmin}>Admin panel</button><p className="fineprint">Every start creates a new exam session</p></section></main>;
 }
 
 function ResultScreen({ result }: { result: Result }) {
-  const percentage = result.score * 2;
-  return <main className="shell"><section className="result card"><div className="result-icon"><CheckCircle2 /></div><p className="eyebrow">EXAM SUBMITTED</p><h1>Examination complete</h1><div className="score"><strong>{result.score}<small>/ 50</small></strong><span>{percentage}%</span></div><p className="result-message">{percentage >= 50 ? 'You have passed this attempt.' : 'This attempt did not reach the 50% passing mark.'}</p><div className="result-grid"><div><span>Answered</span><strong>{result.answered} / 50</strong></div><div><span>Submitted</span><strong>{result.submittedAt.toLocaleTimeString()}</strong></div><div><span>Record</span><strong>{result.saved ? 'Saved to Firebase' : 'Local result only'}</strong></div></div>{result.violations.length > 0 && <div className="notice warning"><AlertTriangle size={17} /><span><strong>Exam violations recorded:</strong> {result.violations.join(', ')}.</span></div>}<p className="fineprint">Correct answers are intentionally not displayed in student mode.</p></section></main>;
+  return <main className="shell"><section className="result card"><div className="result-icon"><CheckCircle2 /></div><p className="eyebrow">EXAM SUBMITTED</p><h1>Your attempt has been submitted</h1><p className="result-message">Thank you. Your exam has been recorded successfully.</p><div className="result-grid"><div><span>Submission</span><strong>Complete</strong></div><div><span>Submitted</span><strong>{result.submittedAt.toLocaleTimeString()}</strong></div><div><span>Record</span><strong>{result.saved ? 'Received' : 'Pending sync'}</strong></div></div><p className="fineprint">The score and detailed result are available only in the admin panel.</p></section></main>;
 }
 
 function AdminPanel({ onBack }: { onBack: () => void }) {
@@ -40,7 +40,7 @@ function AdminPanel({ onBack }: { onBack: () => void }) {
     finally { setLoading(false); }
   };
   if (!unlocked) return <main className="shell"><section className="landing card admin-card"><div className="brand-mark"><LockKeyhole size={22} /></div><p className="eyebrow">ADMIN ACCESS</p><h1>Results panel</h1><p className="lede">Review submitted CS101 attempts.</p><input className="admin-input" type="password" placeholder="Admin passcode" value={passcode} onChange={(event) => setPasscode(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') void unlock(); }} />{error && <div className="notice error"><AlertTriangle size={17} />{error}</div>}<button className="primary start" onClick={() => void unlock()}>Open results</button><button className="admin-link" onClick={onBack}>Back to exam</button></section></main>;
-  return <main className="shell"><section className="admin-results card"><div className="admin-top"><div><p className="eyebrow">ADMIN ACCESS</p><h1>Exam results</h1></div><button className="admin-link" onClick={onBack}>Back to exam</button></div>{loading ? <p className="lede">Loading results…</p> : attempts.length === 0 ? <div className="empty-state">No submitted attempts yet.</div> : <div className="results-table"><div className="table-row table-head"><span>Student</span><span>Score</span><span>Answered</span><span>Time</span><span>Rule status</span></div>{attempts.map((attempt) => <div className="table-row" key={attempt.id}><span className="mono">{attempt.studentId?.slice(0, 10) ?? 'Unknown'}</span><strong>{attempt.score} / {attempt.total}</strong><span>{attempt.answered} / {attempt.total}</span><span>{Math.floor((attempt.durationSeconds ?? 0) / 60)}m</span><span className={attempt.violations?.length ? 'bad' : 'good'}>{attempt.violations?.length ? `${attempt.violations.length} violation(s)` : 'Clean'}</span></div>)}</div>}{error && <div className="notice error"><AlertTriangle size={17} />{error}</div>}<p className="fineprint">Admin access uses the configured passcode. Use Firebase custom claims for stronger production security.</p></section></main>;
+  return <main className="shell"><section className="admin-results card"><div className="admin-top"><div><p className="eyebrow">ADMIN ACCESS</p><h1>Exam results</h1></div><button className="admin-link" onClick={onBack}>Back to exam</button></div>{loading ? <p className="lede">Loading results…</p> : attempts.length === 0 ? <div className="empty-state">No submitted attempts yet.</div> : <div className="results-table"><div className="table-row table-head"><span>Name / Student</span><span>Score</span><span>Answered</span><span>Time</span><span>Rule status</span></div>{attempts.map((attempt) => <div className="table-row" key={attempt.id}><span><strong>{attempt.studentName ?? 'Unnamed'}</strong><small className="mono">{attempt.studentId?.slice(0, 10) ?? 'Unknown'}</small></span><strong>{attempt.score} / {attempt.total}</strong><span>{attempt.answered} / {attempt.total}</span><span>{Math.floor((attempt.durationSeconds ?? 0) / 60)}m</span><span className={attempt.violations?.length ? 'bad' : 'good'}>{attempt.violations?.length ? `${attempt.violations.length} violation(s)` : 'Clean'}</span></div>)}</div>}{error && <div className="notice error"><AlertTriangle size={17} />{error}</div>}<p className="fineprint">Admin access uses the configured passcode. Use Firebase custom claims for stronger production security.</p></section></main>;
 }
 
 export default function App() {
@@ -55,6 +55,7 @@ export default function App() {
   const [adminOpen, setAdminOpen] = useState(() => new URLSearchParams(window.location.search).get('admin') === '1');
   const [violationWarning, setViolationWarning] = useState('');
   const startedAt = useRef<Date | null>(null);
+  const studentNameRef = useRef('');
   const submitted = useRef(false);
   const answerRef = useRef(answers);
   const violationRef = useRef(violations);
@@ -85,6 +86,7 @@ export default function App() {
       if (auth.currentUser) {
         const submittedAtIso = new Date().toISOString();
         await addDoc(collection(db, 'users', auth.currentUser.uid, 'attempts'), {
+          studentName: studentNameRef.current,
           score,
           total: questions.length,
           answered: Object.keys(selectedAnswers).length,
@@ -95,6 +97,7 @@ export default function App() {
           submittedAtIso,
         });
         await addDoc(collection(db, 'adminAttempts'), {
+          studentName: studentNameRef.current,
           score,
           total: questions.length,
           answered: Object.keys(selectedAnswers).length,
@@ -155,12 +158,14 @@ export default function App() {
     };
   }, [phase, warnAndSubmit]);
 
-  const startExam = async () => {
+  const startExam = async (nameOrEvent: unknown) => {
+    const cleanName = typeof nameOrEvent === 'string' ? nameOrEvent.trim() : '';
+    if (!cleanName) { setError('Please enter the student name before starting.'); return; }
     setError('');
     try {
       await document.documentElement.requestFullscreen?.();
     } catch { setError('Fullscreen permission is required to begin the exam. Please allow it and try again.'); return; }
-    submitted.current = false; startedAt.current = new Date(); setSecondsLeft(EXAM_SECONDS); setCurrent(0); setAnswers({}); setViolations([]); setResult(null); setPhase('exam');
+    submitted.current = false; studentNameRef.current = cleanName; startedAt.current = new Date(); setSecondsLeft(EXAM_SECONDS); setCurrent(0); setAnswers({}); setViolations([]); setResult(null); setPhase('exam');
   };
 
   const selectAnswer = (choice: number) => setAnswers((previous) => ({ ...previous, [questions[current].id]: choice }));
